@@ -157,8 +157,14 @@ if Code.ensure_loaded?(Mint.HTTP) do
 
       opts = Map.put_new(opts, :mode, :passive)
 
+      {scheme, host, port, opts} = if String.contains?(uri.scheme, "+unix") do
+        {String.replace(uri.scheme, "+unix", ""), {:local, uri.host |> URI.decode()}, 0, opts |> Map.put(:hostname, "localhost")}
+      else
+        {uri.scheme, uri.host, uri.port, opts}
+      end
+
       with {:ok, conn} <-
-             HTTP.connect(String.to_atom(uri.scheme), uri.host, uri.port, Enum.into(opts, [])) do
+            HTTP.connect(String.to_atom(scheme), host, port, Enum.into(opts, [])) do
         # If there were redirects, and passed `closed_conn: false`, we need to close opened connections to these intermediate hosts.
         {:ok, conn, Map.put(opts, :close_conn, true)}
       end
